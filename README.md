@@ -2,7 +2,7 @@
 
 ## Usage
  - navigate to your `tests` directory within the ex6 brownie project.  
- - clone this project into a subdirectory, e.g ```git clone <repository_link> extra_tests```
+ - clone this project into a subdirectory, e.g ```git clone https://github.com/AviH0/cryptocur_ex6_tests.git extra_tests```
  - run tests with `brownie test` as usual.
 
 ## Test Scenarios implemented
