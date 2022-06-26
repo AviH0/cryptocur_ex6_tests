@@ -244,8 +244,17 @@ def test_notify_bob_of_channel_he_established(alice: LightningNode, bob: Lightni
     network.stop()
     chan_address = bob.establish_channel(
         alice.get_eth_address(), alice.get_ip_address(), 10 * ONE_ETH)
+    assert chan_address in bob.get_list_of_channels()
+    network.resume()
+    # Try to trick bob into thinking he's not the one who established the channel
     bob.notify_of_channel(chan_address, alice.get_ip_address())
     assert chan_address in bob.get_list_of_channels()
+    # Now try to trick bob into thinking he's recieving money when in fact he is sending.
+    bob.receive_funds(sign(ChannelStateMessage(chan_address, 5*ONE_ETH, 5 * ONE_ETH, 1), alice.get_eth_address()))
+    
+    # make sure bob didn't save that state message
+    assert bob.get_current_channel_state(chan_address).serial_number == 0
+
 
 def test_close_channel_with_modified_serial(alice: LightningNode, bob: LightningNode, network: Network):
     alice_init_balance = accounts[0].balance()
@@ -257,6 +266,11 @@ def test_close_channel_with_modified_serial(alice: LightningNode, bob: Lightning
     chan = Channel.at(chan_address)
     assert chan.balance() == 10 * ONE_ETH
 
+    alice.send(chan_address, 1*ONE_ETH)
+    alice.send(chan_address, 1*ONE_ETH)
+    alice.send(chan_address, 1*ONE_ETH)
+    state = alice.get_current_channel_state(chan_address)
+
     with pytest.raises(VirtualMachineError):
-        # Alice tries to close channel with bad balance (but signed properly)
-        alice.close_channel(chan_address, sign(ChannelStateMessage(chan_address, alice_init_balance, alice_init_balance, 1), bob.get_eth_address()))
+        # Alice tries to close channel with modified serial (improperly signed)
+        alice.close_channel(chan_address, ChannelStateMessage(chan_address, alice_init_balance, alice_init_balance, 10, state.sig))
